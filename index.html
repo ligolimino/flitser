@@ -1,0 +1,664 @@
+<!doctype html>
+<html lang="nl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Letterlab flitser</title>
+    <!--
+        Letterlab — flitser
+        Toont letters, klanken of woorden één voor één (of een paar
+        tegelijk) op het scherm. De volledige oefening staat in de link:
+        geen databank, geen account, geen bouwstap.
+        Maak links met ligolimino.github.io/create/.
+    -->
+    <style>
+        @font-face {
+            font-family: Andika;
+            src: url("assets/fonts/andika-400.woff2") format("woff2");
+            font-weight: 400;
+            font-display: block;
+        }
+        @font-face {
+            font-family: Andika;
+            src: url("assets/fonts/andika-700.woff2") format("woff2");
+            font-weight: 700;
+            font-display: block;
+        }
+
+        /* Kleuren van Letterlab */
+        :root {
+            --ink: #0b4a5e;
+            --muted: #4f6f78;
+            --teal: #087f8c;
+            --teal-dark: #08646d;
+            --teal-soft: #d9f2f4;
+            --pink: #e7427a;
+            --paper: #f7fbfb;
+            --line: #c8dfe1;
+            --good: #16805d;
+        }
+
+        * { box-sizing: border-box; }
+
+        html, body {
+            margin: 0;
+            height: 100%;
+            background: var(--paper);
+            color: var(--ink);
+            font-family: Andika, "Segoe UI", Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        /* In Genially: doorzichtig, zodat de dia zichtbaar blijft. */
+        body.embedded { background: transparent; }
+
+        button { font: inherit; color: inherit; cursor: pointer; }
+
+        .app {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Het podium met de letters */
+        .stage {
+            position: relative;
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2vmin;
+            padding: 12px;
+            user-select: none;
+            touch-action: manipulation;
+        }
+        .stage.clickable { cursor: pointer; }
+
+        .items {
+            display: flex;
+            align-items: baseline;
+            justify-content: center;
+            gap: 0.45em;
+            line-height: 1.15;
+            font-weight: 400;
+            white-space: nowrap;
+            transition: opacity 0.12s;
+        }
+        .items.hidden-flash { opacity: 0; }
+        .item { display: inline-block; }
+
+        /* Luisterknop (zelfcontrole: eerst zeggen, dan luisteren) */
+        .listen {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            border: 0;
+            background: var(--teal);
+            color: #fff;
+            display: grid;
+            place-items: center;
+            box-shadow: 0 6px 16px rgba(8, 127, 140, 0.25);
+            flex: none;
+        }
+        .listen svg { width: 32px; height: 32px; }
+        .listen:active { transform: scale(0.95); }
+        .listen.playing { background: var(--pink); }
+
+        /* Start- en eindscherm */
+        .big-button {
+            border: 0;
+            border-radius: 999px;
+            background: var(--teal);
+            color: #fff;
+            font-size: clamp(22px, 5vmin, 40px);
+            font-weight: 700;
+            padding: 0.55em 1.4em;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4em;
+            box-shadow: 0 8px 22px rgba(8, 127, 140, 0.25);
+        }
+        .big-button svg { width: 1.1em; height: 1.1em; }
+        .done-mark {
+            width: clamp(70px, 18vmin, 150px);
+            height: clamp(70px, 18vmin, 150px);
+            border-radius: 50%;
+            background: var(--good);
+            color: #fff;
+            display: grid;
+            place-items: center;
+        }
+        .done-mark svg { width: 60%; height: 60%; }
+
+        /* Bedieningsbalk */
+        .bar {
+            flex: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 6px 10px calc(8px + env(safe-area-inset-bottom));
+        }
+        .ctrl {
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            border: 1.5px solid var(--line);
+            background: #fff;
+            display: grid;
+            place-items: center;
+            color: var(--teal-dark);
+        }
+        .ctrl svg { width: 24px; height: 24px; }
+        .ctrl:hover { border-color: var(--teal); }
+        .ctrl.main {
+            width: 54px;
+            height: 54px;
+            background: var(--teal);
+            border-color: var(--teal);
+            color: #fff;
+        }
+        .ctrl[hidden] { display: none; }
+        /* Snelheidsknoppen */
+        .speed {
+            display: inline-flex;
+            border: 1.5px solid var(--line);
+            border-radius: 999px;
+            overflow: hidden;
+            background: #fff;
+            margin-left: 4px;
+        }
+        .speed button {
+            border: 0;
+            background: transparent;
+            padding: 8px 12px;
+            font-size: 15px;
+            color: var(--teal-dark);
+            border-right: 1px solid var(--line);
+        }
+        .speed button:last-child { border-right: 0; }
+        .speed button[aria-pressed="true"] {
+            background: var(--teal);
+            color: #fff;
+        }
+        .speed .short { display: none; }
+        @media (max-width: 620px) {
+            .speed .long { display: none; }
+            .speed .short { display: inline; }
+            .speed button { padding: 8px 10px; }
+            .bar { gap: 6px; flex-wrap: wrap; }
+        }
+        .count {
+            min-width: 64px;
+            text-align: center;
+            color: var(--muted);
+            font-size: 16px;
+            font-variant-numeric: tabular-nums;
+        }
+        .progress {
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            height: 4px;
+            background: var(--teal);
+            opacity: 0.35;
+            border-radius: 2px;
+        }
+        @keyframes grow { from { width: 0; } to { width: 100%; } }
+
+        /* Klein insluitvak: kleinere knoppen */
+        @media (max-height: 300px) {
+            .ctrl { width: 36px; height: 36px; }
+            .ctrl.main { width: 42px; height: 42px; }
+            .ctrl svg { width: 20px; height: 20px; }
+            .listen { width: 46px; height: 46px; }
+            .listen svg { width: 24px; height: 24px; }
+            .bar { padding-top: 2px; padding-bottom: 4px; }
+            .count { font-size: 14px; }
+            .speed button { padding: 5px 9px; font-size: 13px; }
+        }
+
+        /* Uitlegpagina zonder oefening */
+        .intro {
+            max-width: 620px;
+            margin: 0 auto;
+            padding: 32px 20px;
+            line-height: 1.5;
+            font-size: 18px;
+        }
+        .intro h1 { color: var(--teal-dark); }
+        .intro code {
+            background: var(--teal-soft);
+            padding: 2px 6px;
+            border-radius: 6px;
+        }
+        .intro a { color: var(--teal-dark); }
+    </style>
+</head>
+<body>
+    <div class="app" id="app"></div>
+
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+        <symbol id="i-play" viewBox="0 0 24 24"><path fill="currentColor" d="M8 5.5v13a1 1 0 0 0 1.5.86l10.4-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></symbol>
+        <symbol id="i-pause" viewBox="0 0 24 24"><rect fill="currentColor" x="6" y="5" width="4.2" height="14" rx="1.2"/><rect fill="currentColor" x="13.8" y="5" width="4.2" height="14" rx="1.2"/></symbol>
+        <symbol id="i-next" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></symbol>
+        <symbol id="i-prev" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" d="M15 5l-7 7 7 7"/></symbol>
+        <symbol id="i-restart" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4.5h4.5"/></symbol>
+        <symbol id="i-full" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></symbol>
+        <symbol id="i-check" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+        <symbol id="i-speaker" viewBox="0 0 24 24"><path fill="currentColor" d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M15.5 9a4.2 4.2 0 0 1 0 6M18 6.5a7.8 7.8 0 0 1 0 11"/></symbol>
+    </svg>
+
+    <script>
+    (() => {
+        "use strict";
+
+        // ============================================================
+        // 1. INSTELLINGEN UIT DE LINK
+        // ============================================================
+        //   items=m,aa,k      wat er geflitst wordt (verplicht)
+        //   samen=2           zoveel tegelijk (1 tot 5), standaard 1
+        //   tempo=klik        klik, traag, gemiddeld of snel
+        //   mix=ja            elke ronde in een andere volgorde
+        //   herhaal=ja        na het laatste opnieuw beginnen
+        //   luister=ja        luisterknop: eerst zeggen, dan controleren
+
+        const params = new URLSearchParams(location.search);
+        const param = (name) => (params.get(name) || "").trim();
+        const isYes = (value) => ["ja", "j", "yes", "1", "true", "waar"].includes(value.toLowerCase());
+
+        // Hoe lang één flits zichtbaar blijft (milliseconden).
+        const TEMPI = {
+            traag: 3000,
+            gemiddeld: 1800,
+            snel: 900,
+        };
+        // Korte lege pauze tussen twee flitsen.
+        const BLANK_MS = 250;
+
+        const items = param("items")
+            .split(/[,|]/)
+            .map((item) => item.trim())
+            .filter(Boolean);
+        const together = Math.min(5, Math.max(1, Number.parseInt(param("samen"), 10) || 1));
+        // Het tempo uit de link is alleen het begintempo: het kan in de
+        // flitser zelf veranderd worden met de snelheidsknoppen.
+        let tempoName = Object.keys(TEMPI).includes(param("tempo").toLowerCase())
+            ? param("tempo").toLowerCase()
+            : "klik";
+        let timed = tempoName !== "klik";
+        const SPEEDS = [
+            { name: "klik", label: "Klik", short: "Klik" },
+            { name: "traag", label: "Traag", short: "1" },
+            { name: "gemiddeld", label: "Gemiddeld", short: "2" },
+            { name: "snel", label: "Snel", short: "3" },
+        ];
+        const shuffle = isYes(param("mix"));
+        const loop = isYes(param("herhaal"));
+        const listen = isYes(param("luister"));
+
+        const embedded = window.self !== window.top;
+        if (embedded) document.body.classList.add("embedded");
+
+        // Opnames van het klik-klakboekje (zelfde adres, ligolimino.github.io).
+        const SOUND_FOLDER = "../klikklak/assets/audio/klanken/";
+        const WORD_FOLDER = "../klikklak/assets/audio/woorden/";
+
+        const app = document.getElementById("app");
+
+        function icon(name) {
+            return `<svg aria-hidden="true"><use href="#i-${name}"></use></svg>`;
+        }
+
+        function escapeHtml(value) {
+            return String(value)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;");
+        }
+
+        // ============================================================
+        // 2. GEEN OEFENING: KORTE UITLEG
+        // ============================================================
+
+        if (!items.length) {
+            document.title = "Letterlab flitser";
+            app.innerHTML = `<div class="intro">
+                <h1>Letterlab flitser</h1>
+                <p>Toont letters, klanken of woorden één voor één, of een paar tegelijk.</p>
+                <p>Maak een oefening op <a href="../create/">ligolimino.github.io/create</a>.</p>
+                <p>Voorbeeld: <a href="?items=m,aa,k,s,i,t&tempo=klik"><code>?items=m,aa,k,s,i,t&amp;tempo=klik</code></a></p>
+            </div>`;
+            return;
+        }
+
+        // ============================================================
+        // 3. VOLGORDE EN TOESTAND
+        // ============================================================
+
+        function shuffled(list) {
+            const copy = list.slice();
+            for (let i = copy.length - 1; i > 0; i -= 1) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [copy[i], copy[j]] = [copy[j], copy[i]];
+            }
+            return copy;
+        }
+
+        // Verdeelt de items in groepjes van "samen".
+        function makeGroups() {
+            const order = shuffle ? shuffled(items) : items.slice();
+            const groups = [];
+            for (let i = 0; i < order.length; i += together) {
+                groups.push(order.slice(i, i + together));
+            }
+            return groups;
+        }
+
+        const state = {
+            groups: makeGroups(),
+            index: -1,          // -1 = startscherm
+            playing: false,
+            finished: false,
+            timer: null,
+        };
+
+        // ============================================================
+        // 4. LETTERGROOTTE: zo groot mogelijk, voor alle flitsen gelijk
+        // ============================================================
+
+        const measure = document.createElement("canvas").getContext("2d");
+        let fontSize = 120;
+
+        function computeFontSize() {
+            const stage = document.querySelector(".stage");
+            if (!stage) return;
+            const width = stage.clientWidth - 24;
+            const reserve = listen ? 90 : 0;
+            const height = stage.clientHeight - 24 - reserve;
+            measure.font = "400 100px Andika";
+            const gap = 45; // 0.45em bij 100px
+            let widest = 0;
+            state.groups.forEach((group) => {
+                const total = group.reduce((sum, item) => sum + measure.measureText(item).width, 0)
+                    + gap * (group.length - 1);
+                widest = Math.max(widest, total);
+            });
+            const byWidth = widest ? (width / widest) * 100 : 400;
+            const byHeight = height / 1.2;
+            fontSize = Math.max(24, Math.min(byWidth * 0.92, byHeight * 0.85));
+            const itemsNode = document.querySelector(".items");
+            if (itemsNode) itemsNode.style.fontSize = `${fontSize}px`;
+        }
+
+        // ============================================================
+        // 5. AUDIO (luisterknop)
+        // ============================================================
+
+        const KNOWN_SOUNDS = new Set(["a", "aa", "b", "d", "e", "ee", "eu", "f",
+            "g", "h", "i", "ie", "ij", "ei", "j", "k", "l", "m", "n", "ng", "nk",
+            "o", "oe", "oo", "ou", "p", "r", "s", "sch", "sl", "sp", "st", "t",
+            "u", "ui", "uu", "v", "w", "z"]);
+
+        function candidates(item) {
+            const lower = item.toLowerCase();
+            if (KNOWN_SOUNDS.has(lower)) {
+                const file = lower === "ij" || lower === "ei" ? "ij-ei" : lower;
+                return [`${SOUND_FOLDER}${encodeURIComponent(file)}.mp3`];
+            }
+            const file = `${encodeURIComponent(lower)}.mp3`;
+            return [
+                `${WORD_FOLDER}${encodeURIComponent(lower.charAt(0))}/${file}`,
+                `${WORD_FOLDER}nonsens/${file}`,
+            ];
+        }
+
+        function playOne(item) {
+            return new Promise((resolve) => {
+                const list = candidates(item);
+                let attempt = 0;
+                const tryNext = () => {
+                    if (attempt >= list.length) {
+                        speak(item).then(resolve);
+                        return;
+                    }
+                    const audio = new Audio(list[attempt]);
+                    attempt += 1;
+                    audio.addEventListener("ended", resolve, { once: true });
+                    audio.addEventListener("error", tryNext, { once: true });
+                    audio.play().catch(tryNext);
+                };
+                tryNext();
+            });
+        }
+
+        // Laatste redmiddel: de browserstem (bij voorkeur Belgisch).
+        function speak(text) {
+            return new Promise((resolve) => {
+                if (!("speechSynthesis" in window)) {
+                    resolve();
+                    return;
+                }
+                const utterance = new SpeechSynthesisUtterance(text);
+                const voices = speechSynthesis.getVoices();
+                utterance.voice = voices.find((v) => v.lang === "nl-BE")
+                    || voices.find((v) => v.lang.startsWith("nl")) || null;
+                utterance.lang = utterance.voice ? utterance.voice.lang : "nl-BE";
+                utterance.rate = 0.85;
+                utterance.onend = resolve;
+                utterance.onerror = resolve;
+                // Veiligheid: sommige toestellen melden het einde nooit.
+                setTimeout(resolve, 4000);
+                speechSynthesis.speak(utterance);
+            });
+        }
+
+        let playingAudio = false;
+        async function playGroup() {
+            if (playingAudio || state.index < 0) return;
+            const group = state.groups[state.index];
+            if (!group) return;
+            playingAudio = true;
+            const button = document.querySelector(".listen");
+            if (button) button.classList.add("playing");
+            for (const item of group) {
+                // eslint-disable-next-line no-await-in-loop
+                await playOne(item);
+            }
+            playingAudio = false;
+            const again = document.querySelector(".listen");
+            if (again) again.classList.remove("playing");
+        }
+
+        // ============================================================
+        // 6. TEKENEN
+        // ============================================================
+
+        function render() {
+            const total = state.groups.length;
+            let stageContent = "";
+            let clickable = false;
+
+            if (state.finished) {
+                stageContent = `<div class="done-mark">${icon("check")}</div>
+                    <button class="big-button" data-action="restart">${icon("restart")} Opnieuw</button>`;
+            } else if (state.index < 0) {
+                stageContent = `<button class="big-button" data-action="start">${icon("play")} Start</button>`;
+            } else {
+                const group = state.groups[state.index];
+                clickable = !timed;
+                stageContent = `<div class="items">${group
+                    .map((item) => `<span class="item">${escapeHtml(item)}</span>`).join("")}</div>
+                    ${listen ? `<button class="listen" data-action="listen" aria-label="Luister">${icon("speaker")}</button>` : ""}`;
+            }
+
+            const showing = state.index >= 0 && !state.finished;
+            const position = showing ? `${state.index + 1} / ${total}` : "";
+
+            app.innerHTML = `
+                <div class="stage ${clickable ? "clickable" : ""}" data-action="${clickable ? "next" : ""}">
+                    ${stageContent}
+                    ${timed && state.playing && showing
+                        ? `<div class="progress" style="animation: grow ${TEMPI[tempoName]}ms linear forwards"></div>`
+                        : ""}
+                </div>
+                <div class="bar">
+                    <button class="ctrl" data-action="prev" aria-label="Vorige" ${showing && state.index > 0 ? "" : "hidden"}>${icon("prev")}</button>
+                    ${timed ? `<button class="ctrl main" data-action="toggle" aria-label="${state.playing ? "Pauze" : "Afspelen"}" ${showing ? "" : "hidden"}>${icon(state.playing ? "pause" : "play")}</button>` : ""}
+                    <span class="count">${position}</span>
+                    <button class="ctrl" data-action="next" aria-label="Volgende" ${showing ? "" : "hidden"}>${icon("next")}</button>
+                    <button class="ctrl" data-action="restart" aria-label="Opnieuw beginnen" ${showing ? "" : "hidden"}>${icon("restart")}</button>
+                    <div class="speed" role="group" aria-label="Snelheid">${SPEEDS.map((speed) => `<button
+                        data-speed="${speed.name}" aria-pressed="${speed.name === tempoName}"
+                        title="${speed.label}"><span class="long">${speed.label}</span><span class="short">${speed.short}</span></button>`).join("")}</div>
+                    ${document.fullscreenEnabled ? `<button class="ctrl" data-action="fullscreen" aria-label="Volledig scherm">${icon("full")}</button>` : ""}
+                </div>`;
+            computeFontSize();
+        }
+
+        // ============================================================
+        // 7. BEDIENING
+        // ============================================================
+
+        function stopTimer() {
+            clearTimeout(state.timer);
+            state.timer = null;
+        }
+
+        // Volgende flits na de ingestelde tijd, met een korte lege pauze.
+        function schedule() {
+            stopTimer();
+            if (!timed || !state.playing) return;
+            state.timer = setTimeout(() => {
+                const node = document.querySelector(".items");
+                if (node) node.classList.add("hidden-flash");
+                state.timer = setTimeout(() => next(true), BLANK_MS);
+            }, TEMPI[tempoName]);
+        }
+
+        function show(index) {
+            state.index = index;
+            state.finished = false;
+            render();
+            schedule();
+        }
+
+        function next(fromTimer = false) {
+            if (state.index < state.groups.length - 1) {
+                show(state.index + 1);
+            } else if (loop) {
+                state.groups = makeGroups();
+                show(0);
+            } else {
+                stopTimer();
+                state.playing = false;
+                state.finished = true;
+                render();
+            }
+            if (!fromTimer) playingAudio = false;
+        }
+
+        function prev() {
+            if (state.index > 0) show(state.index - 1);
+        }
+
+        function start() {
+            state.groups = makeGroups();
+            state.playing = timed;
+            show(0);
+        }
+
+        function toggle() {
+            state.playing = !state.playing;
+            if (state.playing) schedule();
+            else stopTimer();
+            render();
+        }
+
+        // Snelheid wijzigen tijdens het flitsen.
+        function setSpeed(name) {
+            if (name === tempoName) return;
+            tempoName = name;
+            timed = name !== "klik";
+            const showing = state.index >= 0 && !state.finished;
+            if (!timed) {
+                stopTimer();
+                state.playing = false;
+            } else if (showing) {
+                state.playing = true;
+            }
+            render();
+            if (showing) schedule();
+        }
+
+        function fullscreen() {
+            if (document.fullscreenElement) document.exitFullscreen();
+            else document.documentElement.requestFullscreen().catch(() => {});
+        }
+
+        app.addEventListener("click", (event) => {
+            const target = event.target.closest("[data-action], [data-speed]");
+            if (!target) return;
+            if (target.dataset.speed) {
+                setSpeed(target.dataset.speed);
+                return;
+            }
+            const action = target.dataset.action;
+            if (action === "start" || action === "restart") start();
+            else if (action === "next") next();
+            else if (action === "prev") prev();
+            else if (action === "toggle") toggle();
+            else if (action === "listen") {
+                event.stopPropagation();
+                playGroup();
+            } else if (action === "fullscreen") fullscreen();
+        });
+
+        // Toetsen voor de lesgever: spatie/pijl rechts = volgende,
+        // pijl links = vorige, P = pauze, F = volledig scherm.
+        document.addEventListener("keydown", (event) => {
+            if (event.altKey || event.ctrlKey || event.metaKey) return;
+            const key = event.key;
+            if (state.index < 0 || state.finished) {
+                if (key === " " || key === "Enter" || key === "ArrowRight") {
+                    event.preventDefault();
+                    start();
+                }
+                return;
+            }
+            if (key === "ArrowRight" || key === " " || key === "PageDown") {
+                event.preventDefault();
+                next();
+            } else if (key === "ArrowLeft" || key === "PageUp") {
+                event.preventDefault();
+                prev();
+            } else if ((key === "p" || key === "P") && timed) {
+                toggle();
+            } else if (["1", "2", "3"].includes(key)) {
+                // Zelfde nummers als op de knoppen: 1 traag, 2 gemiddeld, 3 snel.
+                setSpeed(SPEEDS[Number(key)].name);
+            } else if (key === "0" || key === "k" || key === "K") {
+                setSpeed("klik");
+            } else if (key === "f" || key === "F") {
+                fullscreen();
+            } else if ((key === "l" || key === "L") && listen) {
+                playGroup();
+            }
+        });
+
+        window.addEventListener("resize", computeFontSize);
+        document.addEventListener("fullscreenchange", () => setTimeout(computeFontSize, 50));
+
+        // Met tempo "klik" staat de eerste flits meteen klaar; bij een
+        // tempo wacht de tool op Start, zodat de lesgever kan beginnen
+        // wanneer de groep klaar is.
+        document.fonts.ready.then(() => {
+            if (timed) render();
+            else show(0);
+        });
+    })();
+    </script>
+</body>
+</html>
