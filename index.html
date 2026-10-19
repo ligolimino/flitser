@@ -301,10 +301,10 @@
         const embedded = window.self !== window.top;
         if (embedded) document.body.classList.add("embedded");
 
-        // Opnames uit de centrale audio-repository (ligolimino.github.io/audio/).
+        // Opnames uit de centrale repository assets (ligolimino.github.io/assets/audio/).
         // De mappen van het klik-klakboekje blijven als tweede kans bestaan.
-        const SOUND_FOLDERS = ["../audio/klanken/", "../klikklak/assets/audio/klanken/"];
-        const WORD_FOLDERS = ["../audio/woorden/", "../klikklak/assets/audio/woorden/"];
+        const SOUND_FOLDERS = ["../assets/audio/klanken/", "../klikklak/assets/audio/klanken/"];
+        const WORD_FOLDERS = ["../assets/audio/woorden/", "../klikklak/assets/audio/woorden/"];
 
         // Namen die Windows niet toelaat als bestandsnaam. De opname van
         // bv. het woord 'nul' heet daarom 'nul_.mp3'.
