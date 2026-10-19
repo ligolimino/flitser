@@ -301,9 +301,17 @@
         const embedded = window.self !== window.top;
         if (embedded) document.body.classList.add("embedded");
 
-        // Opnames van het klik-klakboekje (zelfde adres, ligolimino.github.io).
-        const SOUND_FOLDER = "../klikklak/assets/audio/klanken/";
-        const WORD_FOLDER = "../klikklak/assets/audio/woorden/";
+        // Opnames uit de centrale audio-repository (ligolimino.github.io/audio/).
+        // De mappen van het klik-klakboekje blijven als tweede kans bestaan.
+        const SOUND_FOLDERS = ["../audio/klanken/", "../klikklak/assets/audio/klanken/"];
+        const WORD_FOLDERS = ["../audio/woorden/", "../klikklak/assets/audio/woorden/"];
+
+        // Namen die Windows niet toelaat als bestandsnaam. De opname van
+        // bv. het woord 'nul' heet daarom 'nul_.mp3'.
+        const RESERVED_NAMES = ["con", "prn", "aux", "nul"];
+        function audioFileName(word) {
+            return RESERVED_NAMES.includes(word) ? `${word}_` : word;
+        }
 
         const app = document.getElementById("app");
 
@@ -406,13 +414,13 @@
             const lower = item.toLowerCase();
             if (KNOWN_SOUNDS.has(lower)) {
                 const file = lower === "ij" || lower === "ei" ? "ij-ei" : lower;
-                return [`${SOUND_FOLDER}${encodeURIComponent(file)}.mp3`];
+                return SOUND_FOLDERS.map((folder) => `${folder}${encodeURIComponent(file)}.mp3`);
             }
-            const file = `${encodeURIComponent(lower)}.mp3`;
-            return [
-                `${WORD_FOLDER}${encodeURIComponent(lower.charAt(0))}/${file}`,
-                `${WORD_FOLDER}nonsens/${file}`,
-            ];
+            const file = `${encodeURIComponent(audioFileName(lower))}.mp3`;
+            return WORD_FOLDERS.flatMap((folder) => [
+                `${folder}${encodeURIComponent(lower.charAt(0))}/${file}`,
+                `${folder}nonsens/${file}`,
+            ]);
         }
 
         function playOne(item) {

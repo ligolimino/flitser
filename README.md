@@ -54,8 +54,8 @@ klaar.
 ## Geluid
 
 De luisterknop gebruikt de opnames van het klik-klakboekje:
-klanken uit `klikklak/assets/audio/klanken/` en woorden uit
-`klikklak/assets/audio/woorden/`. Is er geen opname, dan spreekt de
+klanken en woorden uit de repository **audio** (`klanken/` en `woorden/`),
+met de mappen van het klik-klakboekje als tweede kans. Is er geen opname, dan spreekt de
 browserstem (bij voorkeur Belgisch-Nederlands).
 
 ## Na een wijziging
