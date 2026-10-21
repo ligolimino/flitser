@@ -32,6 +32,16 @@ Het tempo in de link is het begintempo. Onderaan in de flitser kies je
 zelf een andere snelheid (Klik, Traag, Gemiddeld, Snel; op een smal scherm
 Klik, 1, 2, 3).
 
+Naast de snelheid staan twee kleine aan/uit-knopjes:
+
+- **luidspreker**: de luisterknop aan of uit (`luister=ja` / `luister=nee`);
+- **kruisende pijlen**: door elkaar aan of uit (`mix=ja` / `mix=nee`).
+  Wat al geflitst is, blijft staan; de rest van de ronde krijgt de nieuwe
+  volgorde. Op het startscherm geldt de keuze vanaf Start.
+
+De link in de adresbalk wordt meteen mee aangepast. Kopieer je die link,
+dan staan de knopjes de volgende keer weer zo.
+
 De tijden staan bovenaan in het script bij `TEMPI` en kunnen daar
 aangepast worden.
 
@@ -44,7 +54,9 @@ aangepast worden.
 | P | pauze (bij een tempo) |
 | 1 / 2 / 3 | traag / gemiddeld / snel |
 | K of 0 | bij een klik |
-| L | luisteren (met `luister=ja`) |
+| L | luisteren (als de luisterknop aan staat) |
+| A | luisterknop aan/uit |
+| M | door elkaar aan/uit |
 | F | volledig scherm |
 
 Met een tempo verschijnt eerst een knop **Start**, zodat je kunt beginnen
