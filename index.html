@@ -75,11 +75,13 @@
         }
         .stage.clickable { cursor: pointer; }
 
+        /* Meerdere letters of woorden tegelijk: onder elkaar. */
         .items {
             display: flex;
-            align-items: baseline;
+            flex-direction: column;
+            align-items: center;
             justify-content: center;
-            gap: 0.45em;
+            gap: 0.12em;
             line-height: 1.15;
             font-weight: 400;
             white-space: nowrap;
@@ -423,15 +425,19 @@
             const reserve = listen ? 90 : 0;
             const height = stage.clientHeight - 24 - reserve;
             measure.font = "400 100px Andika";
-            const gap = 45; // 0.45em bij 100px
+            // De items staan onder elkaar: het breedste item bepaalt de
+            // breedte, het grootste groepje de hoogte.
             let widest = 0;
+            let rows = 1;
             state.groups.forEach((group) => {
-                const total = group.reduce((sum, item) => sum + measure.measureText(item).width, 0)
-                    + gap * (group.length - 1);
-                widest = Math.max(widest, total);
+                group.forEach((item) => {
+                    widest = Math.max(widest, measure.measureText(item).width);
+                });
+                rows = Math.max(rows, group.length);
             });
             const byWidth = widest ? (width / widest) * 100 : 400;
-            const byHeight = height / 1.2;
+            // Elke regel is 1,15 em hoog, met 0,12 em tussenruimte.
+            const byHeight = height / (rows * 1.15 + (rows - 1) * 0.12 + 0.05);
             fontSize = Math.max(24, Math.min(byWidth * 0.92, byHeight * 0.85));
             const itemsNode = document.querySelector(".items");
             if (itemsNode) itemsNode.style.fontSize = `${fontSize}px`;
