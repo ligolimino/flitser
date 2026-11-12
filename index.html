@@ -285,6 +285,8 @@
         //   mix=ja            elke ronde in een andere volgorde
         //   herhaal=ja        na het laatste opnieuw beginnen
         //   luister=ja        luisterknop: eerst zeggen, dan controleren
+        //   grootte=60        letters op 60 % van de grootst mogelijke maat
+        //                     (20 tot 100), standaard 100
 
         const params = new URLSearchParams(location.search);
         const param = (name) => (params.get(name) || "").trim();
@@ -304,6 +306,11 @@
             .map((item) => item.trim())
             .filter(Boolean);
         const together = Math.min(5, Math.max(1, Number.parseInt(param("samen"), 10) || 1));
+        const SIZE = (() => {
+            const value = Number.parseFloat(param("grootte").replace(",", "."));
+            if (!Number.isFinite(value) || value <= 0) return 1;
+            return Math.min(1, Math.max(0.2, value / 100));
+        })();
         // Het tempo uit de link is alleen het begintempo: het kan in de
         // flitser zelf veranderd worden met de snelheidsknoppen.
         let tempoName = Object.keys(TEMPI).includes(param("tempo").toLowerCase())
@@ -439,7 +446,7 @@
             const byWidth = widest ? (width / widest) * 100 : 400;
             // Elke regel is 1,15 em hoog, met 0,12 em tussenruimte.
             const byHeight = height / (rows * 1.15 + (rows - 1) * 0.12 + 0.05);
-            fontSize = Math.max(24, Math.min(byWidth * 0.92, byHeight * 0.85));
+            fontSize = Math.max(24, Math.min(byWidth * 0.92, byHeight * 0.85) * SIZE);
             const itemsNode = document.querySelector(".items");
             if (itemsNode) itemsNode.style.fontSize = `${fontSize}px`;
         }
